@@ -1,0 +1,347 @@
+diff --git a/src/app/_layout.tsx b/src/app/_layout.tsx
+index 1fcdac9..b5de2f0 100644
+--- a/src/app/_layout.tsx
++++ b/src/app/_layout.tsx
+@@ -58,18 +58,8 @@ function RootLayoutNav() {
+   return (
+     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+       <MigrationProvider>
+-        <Stack>
+-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+-          <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+-          <Stack.Screen
+-            name="sheet"
+-            options={{
+-              presentation: "formSheet",
+-              sheetCornerRadius: 20,
+-              sheetGrabberVisible: true,
+-              sheetAllowedDetents: [0.3, 1.0],
+-            }}
+-          />
++        <Stack screenOptions={{ headerShown: false }}>
++          <Stack.Screen name="index" />
+         </Stack>
+       </MigrationProvider>
+     </ThemeProvider>
+diff --git a/src/app/index.tsx b/src/app/index.tsx
+new file mode 100644
+index 0000000..09075a6
+--- /dev/null
++++ b/src/app/index.tsx
+@@ -0,0 +1,118 @@
++import React, { useState } from 'react';
++import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
++import { TimerInterval } from '@/components/TimerInterval';
++import { Timer } from '@/components/Timer';
++
++interface Interval {
++  id: string;
++  name: string;
++  minutes: number;
++}
++
++export default function App() {
++  const [intervals, setIntervals] = useState<Interval[]>([
++    { id: '1', name: 'Study', minutes: 25 },
++    { id: '2', name: 'Rest', minutes: 5 },
++  ]);
++  const [currentIntervalIndex, setCurrentIntervalIndex] = useState(0);
++
++  const addInterval = () => {
++    const newId = (intervals.length + 1).toString();
++    setIntervals([...intervals, { id: newId, name: '', minutes: 25 }]);
++  };
++
++  const updateInterval = (id: string, updates: Partial<Interval>) => {
++    setIntervals(intervals.map(interval =>
++      interval.id === id ? { ...interval, ...updates } : interval
++    ));
++  };
++
++  const deleteInterval = (id: string) => {
++    setIntervals(intervals.filter(interval => interval.id !== id));
++    if (currentIntervalIndex >= intervals.length - 1) {
++      setCurrentIntervalIndex(Math.max(0, intervals.length - 2));
++    }
++  };
++
++  const handleTimerComplete = () => {
++    if (currentIntervalIndex < intervals.length - 1) {
++      setCurrentIntervalIndex(currentIntervalIndex + 1);
++    } else {
++      setCurrentIntervalIndex(0);
++    }
++  };
++
++  return (
++    <View style={styles.container}>
++      <View style={styles.topHalf}>
++        <ScrollView style={styles.intervalList}>
++          {intervals.map((interval) => (
++            <TimerInterval
++              key={interval.id}
++              name={interval.name}
++              minutes={interval.minutes}
++              onNameChange={(name) => updateInterval(interval.id, { name })}
++              onMinutesChange={(minutes) => updateInterval(interval.id, { minutes })}
++              onDelete={() => deleteInterval(interval.id)}
++            />
++          ))}
++        </ScrollView>
++        <TouchableOpacity style={styles.addButton} onPress={addInterval}>
++          <Text style={styles.addButtonText}>+ Add Interval</Text>
++        </TouchableOpacity>
++      </View>
++      
++      <View style={styles.bottomHalf}>
++        {intervals.length > 0 && (
++          <>
++            <Text style={styles.currentIntervalName}>
++              {intervals[currentIntervalIndex].name || 'Unnamed Interval'}
++            </Text>
++            <Timer
++              minutes={intervals[currentIntervalIndex].minutes}
++              onComplete={handleTimerComplete}
++            />
++          </>
++        )}
++      </View>
++    </View>
++  );
++}
++
++const styles = StyleSheet.create({
++  container: {
++    flex: 1,
++    backgroundColor: '#fff',
++  },
++  topHalf: {
++    flex: 1,
++    padding: 20,
++  },
++  intervalList: {
++    flex: 1,
++  },
++  addButton: {
++    backgroundColor: '#2196F3',
++    padding: 15,
++    borderRadius: 10,
++    alignItems: 'center',
++    marginTop: 10,
++  },
++  addButtonText: {
++    color: 'white',
++    fontSize: 16,
++    fontWeight: 'bold',
++  },
++  bottomHalf: {
++    flex: 1,
++    borderTopWidth: 1,
++    borderTopColor: '#ccc',
++    justifyContent: 'center',
++  },
++  currentIntervalName: {
++    textAlign: 'center',
++    fontSize: 24,
++    fontWeight: 'bold',
++    marginBottom: 10,
++  },
++});
+\ No newline at end of file
+diff --git a/src/components/Timer.tsx b/src/components/Timer.tsx
+new file mode 100644
+index 0000000..59fad17
+--- /dev/null
++++ b/src/components/Timer.tsx
+@@ -0,0 +1,110 @@
++import React, { useState, useEffect } from 'react';
++import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
++
++interface TimerProps {
++  minutes: number;
++  onComplete: () => void;
++}
++
++export function Timer({ minutes, onComplete }: TimerProps) {
++  const [timeLeft, setTimeLeft] = useState(minutes * 60);
++  const [isRunning, setIsRunning] = useState(false);
++
++  useEffect(() => {
++    let interval: NodeJS.Timeout;
++
++    if (isRunning && timeLeft > 0) {
++      interval = setInterval(() => {
++        setTimeLeft((prev) => {
++          if (prev <= 1) {
++            setIsRunning(false);
++            onComplete();
++            return 0;
++          }
++          return prev - 1;
++        });
++      }, 1000);
++    }
++
++    return () => {
++      if (interval) {
++        clearInterval(interval);
++      }
++    };
++  }, [isRunning, timeLeft, onComplete]);
++
++  useEffect(() => {
++    setTimeLeft(minutes * 60);
++    setIsRunning(false);
++  }, [minutes]);
++
++  const formatTime = (seconds: number) => {
++    const mins = Math.floor(seconds / 60);
++    const secs = seconds % 60;
++    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
++  };
++
++  return (
++    <View style={styles.container}>
++      <Text style={styles.time}>{formatTime(timeLeft)}</Text>
++      <View style={styles.buttonContainer}>
++        <TouchableOpacity
++          style={[styles.button, isRunning ? styles.stopButton : styles.startButton]}
++          onPress={() => setIsRunning(!isRunning)}
++        >
++          <Text style={styles.buttonText}>
++            {isRunning ? 'Stop' : 'Start'}
++          </Text>
++        </TouchableOpacity>
++        <TouchableOpacity
++          style={[styles.button, styles.resetButton]}
++          onPress={() => {
++            setTimeLeft(minutes * 60);
++            setIsRunning(false);
++          }}
++        >
++          <Text style={styles.buttonText}>Reset</Text>
++        </TouchableOpacity>
++      </View>
++    </View>
++  );
++}
++
++const styles = StyleSheet.create({
++  container: {
++    alignItems: 'center',
++    justifyContent: 'center',
++    padding: 20,
++  },
++  time: {
++    fontSize: 72,
++    fontWeight: 'bold',
++    marginBottom: 20,
++  },
++  buttonContainer: {
++    flexDirection: 'row',
++    justifyContent: 'center',
++    gap: 20,
++  },
++  button: {
++    paddingHorizontal: 30,
++    paddingVertical: 15,
++    borderRadius: 25,
++    minWidth: 120,
++    alignItems: 'center',
++  },
++  startButton: {
++    backgroundColor: '#4CAF50',
++  },
++  stopButton: {
++    backgroundColor: '#f44336',
++  },
++  resetButton: {
++    backgroundColor: '#2196F3',
++  },
++  buttonText: {
++    color: 'white',
++    fontSize: 18,
++    fontWeight: 'bold',
++  },
++});
+\ No newline at end of file
+diff --git a/src/components/TimerInterval.tsx b/src/components/TimerInterval.tsx
+new file mode 100644
+index 0000000..17ee5dc
+--- /dev/null
++++ b/src/components/TimerInterval.tsx
+@@ -0,0 +1,73 @@
++import React from 'react';
++import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
++
++interface TimerIntervalProps {
++  name: string;
++  minutes: number;
++  onNameChange: (name: string) => void;
++  onMinutesChange: (minutes: number) => void;
++  onDelete: () => void;
++}
++
++export function TimerInterval({ name, minutes, onNameChange, onMinutesChange, onDelete }: TimerIntervalProps) {
++  return (
++    <View style={styles.container}>
++      <TextInput
++        style={styles.nameInput}
++        value={name}
++        onChangeText={onNameChange}
++        placeholder="Interval name"
++      />
++      <TextInput
++        style={styles.minutesInput}
++        value={minutes.toString()}
++        onChangeText={(text) => {
++          const num = parseInt(text) || 0;
++          onMinutesChange(num);
++        }}
++        keyboardType="numeric"
++        placeholder="Minutes"
++      />
++      <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
++        <Text style={styles.deleteText}>✕</Text>
++      </TouchableOpacity>
++    </View>
++  );
++}
++
++const styles = StyleSheet.create({
++  container: {
++    flexDirection: 'row',
++    alignItems: 'center',
++    marginVertical: 5,
++    paddingHorizontal: 10,
++  },
++  nameInput: {
++    flex: 2,
++    borderWidth: 1,
++    borderColor: '#ccc',
++    borderRadius: 5,
++    padding: 8,
++    marginRight: 10,
++  },
++  minutesInput: {
++    flex: 1,
++    borderWidth: 1,
++    borderColor: '#ccc',
++    borderRadius: 5,
++    padding: 8,
++    marginRight: 10,
++  },
++  deleteButton: {
++    backgroundColor: '#ff4444',
++    width: 30,
++    height: 30,
++    borderRadius: 15,
++    justifyContent: 'center',
++    alignItems: 'center',
++  },
++  deleteText: {
++    color: 'white',
++    fontSize: 16,
++  },
++});
+\ No newline at end of file
