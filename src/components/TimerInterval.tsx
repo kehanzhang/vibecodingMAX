@@ -59,15 +59,18 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   deleteButton: {
-    backgroundColor: '#ff4444',
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    backgroundColor: '#4a4a4a',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'absolute',
+    top: -8,
+    right: 5,
   },
   deleteText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
   },
 });

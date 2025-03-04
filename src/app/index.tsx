@@ -44,6 +44,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Intervaller</Text>
       <View style={styles.topHalf}>
         <ScrollView style={styles.intervalList}>
           {intervals.map((interval) => (
@@ -85,6 +86,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingTop: 50, // Add top padding for safe area
   },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   topHalf: {
     flex: 1,
     padding: 20,
@@ -94,7 +101,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10, // Add bottom padding for better spacing
   },
   addButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#4a4a4a',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
