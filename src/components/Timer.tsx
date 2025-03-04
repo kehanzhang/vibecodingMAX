@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions, Animated, Easing } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface TimerProps {
   minutes: number;
@@ -7,6 +8,8 @@ interface TimerProps {
 }
 
 export function Timer({ minutes, onComplete }: TimerProps) {
+  const [fadeAnim] = useState(new Animated.Value(1));
+  const [bgColor, setBgColor] = useState('#3B82F6'); // Start with blue
   const [timeLeft, setTimeLeft] = useState(minutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -15,6 +18,35 @@ export function Timer({ minutes, onComplete }: TimerProps) {
     let interval: NodeJS.Timeout;
 
     if (isRunning && timeLeft > 0) {
+      // Pulse animation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(fadeAnim, {
+            toValue: 0.7,
+            duration: 1000,
+            easing: Easing.inOut(Easing.sine),
+            useNativeDriver: true,
+          }),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 1000,
+            easing: Easing.inOut(Easing.sine),
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Change background color based on time remaining
+      const totalTime = minutes * 60;
+      const progress = timeLeft / totalTime;
+      if (progress > 0.66) {
+        setBgColor('#3B82F6'); // Blue
+      } else if (progress > 0.33) {
+        setBgColor('#8B5CF6'); // Purple
+      } else {
+        setBgColor('#EC4899'); // Pink
+      }
+
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -25,6 +57,8 @@ export function Timer({ minutes, onComplete }: TimerProps) {
           return prev - 1;
         });
       }, 1000);
+    } else {
+      fadeAnim.setValue(1);
     }
 
     return () => {
@@ -32,7 +66,7 @@ export function Timer({ minutes, onComplete }: TimerProps) {
         clearInterval(interval);
       }
     };
-  }, [isRunning, timeLeft, onComplete]);
+  }, [isRunning, timeLeft, onComplete, fadeAnim, minutes]);
 
   useEffect(() => {
     setTimeLeft(minutes * 60);
@@ -53,15 +87,22 @@ export function Timer({ minutes, onComplete }: TimerProps) {
   };
 
   const TimerContent = ({ containerStyle = {}, showExitButton = false }) => (
-    <View style={[styles.container, containerStyle]}>
+    <Animated.View 
+      style={[
+        styles.container, 
+        containerStyle,
+        { opacity: fadeAnim, backgroundColor: bgColor }
+      ]}
+    >
       {showExitButton && (
         <TouchableOpacity
           style={styles.exitButton}
           onPress={() => {
             setIsFullscreen(false);
+            setIsRunning(false);
           }}
         >
-          <Text style={styles.exitButtonText}>✕</Text>
+          <MaterialIcons name="keyboard-arrow-down" size={32} color="white" />
         </TouchableOpacity>
       )}
       <Text style={[styles.time, showExitButton && styles.fullscreenTime]}>
@@ -72,22 +113,26 @@ export function Timer({ minutes, onComplete }: TimerProps) {
           style={[styles.button, isRunning ? styles.stopButton : styles.startButton]}
           onPress={handleStartPress}
         >
-          <Text style={styles.buttonText}>
-            {isRunning ? 'Stop' : 'Start'}
-          </Text>
+          <MaterialIcons 
+            name={isRunning ? "pause-circle-filled" : "play-circle-filled"} 
+            size={showExitButton ? 80 : 48} 
+            color="white" 
+          />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.resetButton]}
-          onPress={() => {
-            setTimeLeft(minutes * 60);
-            setIsRunning(false);
-            setIsFullscreen(false);
-          }}
-        >
-          <Text style={styles.buttonText}>Reset</Text>
-        </TouchableOpacity>
+        {!isRunning && (
+          <TouchableOpacity
+            style={[styles.button, styles.resetButton]}
+            onPress={() => {
+              setTimeLeft(minutes * 60);
+              setIsRunning(false);
+              setIsFullscreen(false);
+            }}
+          >
+            <MaterialIcons name="refresh" size={showExitButton ? 60 : 36} color="white" />
+          </TouchableOpacity>
+        )}
       </View>
-    </View>
+    </Animated.View>
   );
 
   return (
@@ -113,62 +158,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    borderRadius: 20,
   },
   fullscreenContainer: {
     flex: 1,
-    backgroundColor: '#4CAF50',
     alignItems: 'center',
     justifyContent: 'center',
   },
   time: {
     fontSize: 72,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontWeight: '300',
+    color: 'white',
+    marginBottom: 40,
+    fontFamily: 'System',
   },
   fullscreenTime: {
-    fontSize: 120,
+    fontSize: 140,
+    letterSpacing: -5,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 20,
+    alignItems: 'center',
+    gap: 40,
   },
   button: {
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    minWidth: 120,
     alignItems: 'center',
+    justifyContent: 'center',
+    width: 'auto',
+    height: 'auto',
   },
   startButton: {
-    backgroundColor: '#4CAF50',
+    opacity: 1,
   },
   stopButton: {
-    backgroundColor: '#f44336',
+    opacity: 0.9,
   },
   resetButton: {
-    backgroundColor: '#2196F3',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
+    opacity: 0.7,
   },
   exitButton: {
     position: 'absolute',
     top: 40,
-    right: 20,
-    backgroundColor: '#ff4444',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    alignSelf: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     zIndex: 1000,
-  },
-  exitButtonText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
   },
 });
