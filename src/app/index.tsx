@@ -83,6 +83,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: 50, // Add top padding for safe area
   },
   topHalf: {
     flex: 1,
@@ -90,6 +91,7 @@ const styles = StyleSheet.create({
   },
   intervalList: {
     flex: 1,
+    paddingBottom: 10, // Add bottom padding for better spacing
   },
   addButton: {
     backgroundColor: '#2196F3',

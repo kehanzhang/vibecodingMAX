@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Dimensions } from 'react-native';
 
 interface TimerProps {
   minutes: number;
@@ -9,6 +9,7 @@ interface TimerProps {
 export function Timer({ minutes, onComplete }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState(minutes * 60);
   const [isRunning, setIsRunning] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -44,13 +45,32 @@ export function Timer({ minutes, onComplete }: TimerProps) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.time}>{formatTime(timeLeft)}</Text>
+  const handleStartPress = () => {
+    setIsRunning(!isRunning);
+    if (!isRunning) {
+      setIsFullscreen(true);
+    }
+  };
+
+  const TimerContent = ({ containerStyle = {}, showExitButton = false }) => (
+    <View style={[styles.container, containerStyle]}>
+      {showExitButton && (
+        <TouchableOpacity
+          style={styles.exitButton}
+          onPress={() => {
+            setIsFullscreen(false);
+          }}
+        >
+          <Text style={styles.exitButtonText}>✕</Text>
+        </TouchableOpacity>
+      )}
+      <Text style={[styles.time, showExitButton && styles.fullscreenTime]}>
+        {formatTime(timeLeft)}
+      </Text>
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, isRunning ? styles.stopButton : styles.startButton]}
-          onPress={() => setIsRunning(!isRunning)}
+          onPress={handleStartPress}
         >
           <Text style={styles.buttonText}>
             {isRunning ? 'Stop' : 'Start'}
@@ -61,12 +81,30 @@ export function Timer({ minutes, onComplete }: TimerProps) {
           onPress={() => {
             setTimeLeft(minutes * 60);
             setIsRunning(false);
+            setIsFullscreen(false);
           }}
         >
           <Text style={styles.buttonText}>Reset</Text>
         </TouchableOpacity>
       </View>
     </View>
+  );
+
+  return (
+    <>
+      <TimerContent />
+      <Modal
+        visible={isFullscreen}
+        animationType="fade"
+        transparent={false}
+        onRequestClose={() => setIsFullscreen(false)}
+      >
+        <TimerContent
+          containerStyle={styles.fullscreenContainer}
+          showExitButton={true}
+        />
+      </Modal>
+    </>
   );
 }
 
@@ -76,10 +114,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
   },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   time: {
     fontSize: 72,
     fontWeight: 'bold',
     marginBottom: 20,
+  },
+  fullscreenTime: {
+    fontSize: 120,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -105,6 +152,23 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  exitButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    backgroundColor: '#ff4444',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  exitButtonText: {
+    color: 'white',
+    fontSize: 20,
     fontWeight: 'bold',
   },
 });
